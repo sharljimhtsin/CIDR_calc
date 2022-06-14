@@ -1,0 +1,95 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>CIDR IPv4 计算器</title>
+    <script type="text/javascript">
+
+        function calc() {
+            let resultDiv = document.getElementById("result");
+            let ipAddr = document.getElementById("ipAddr").value;
+            let preLen = document.getElementById("preLen").value;
+            let regMatch = ipAddr.match(/(\d{1,3}\.){3}\d{1,3}/g);
+
+            if (regMatch === null || regMatch[0] !== ipAddr) {
+                alert("BAD IP ADDR!");
+                return;
+            }
+
+            if (preLen === '' || isNaN(preLen) || preLen > 32) {
+                alert("BAD PREFIX LEN!");
+                return;
+            }
+
+            let index = 1;
+            let ipParts = ipAddr.split(".");
+            let networkIp = [];
+            let networkIpMax = [];
+            let maskIp = [255, 255, 255, 255];
+            for (let i of ipParts) {
+                let part = parseInt(i).toString(2).padStart(8, 0);
+                const block = Math.ceil(index / 8);
+                networkIp[block - 1] = parseInt(i);
+                networkIpMax[block - 1] = parseInt(i);
+                for (let j in part) {
+                    if (index > preLen) {
+                        let bitPos = 8 - j - 1;
+                        networkIp[block - 1] = networkIp[block - 1] & ~(1 << bitPos);
+                        networkIpMax[block - 1] = networkIpMax[block - 1] | (1 << bitPos);
+                        maskIp[block - 1] = maskIp[block - 1] & ~(1 << bitPos);
+                    } else {
+                        console.log("skip");
+                    }
+                    index++;
+                }
+            }
+            let networkIpMin = JSON.parse(JSON.stringify(networkIp));
+            networkIpMin[3] = parseInt(networkIpMin[3]) | 1;
+            //debug
+            dumpBin(networkIp);
+            dumpBin(maskIp);
+            //print
+            let str = `
+            网络地址:${networkIp.join(".")}
+            开始网络地址:${networkIpMin.join(".")}
+            结束网络地址:${networkIpMax.join(".")}
+            网关地址:${maskIp.join(".")}
+            `;
+            resultDiv.innerText = str;
+        }
+
+        function dumpBin(ips) {
+            for (const a of ips) {
+                console.log(parseInt(a).toString(2).padStart(8, 0));
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <form>
+        <table>
+            <tr>
+                <td>IPv4 IP地址:</td>
+                <td><input type="text" id="ipAddr" /></td>
+            </tr>
+            <tr>
+                <td>前缀长度:</td>
+                <td><input type="number" id="preLen" /></td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div id="result"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <center><input type="button" onclick="calc()" value="计算" /></center>
+                </td>
+            </tr>
+        </table>
+    </form>
+</body>
+
+</html>
